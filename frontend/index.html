@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareCompass AI | Professional Clinical Triage</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        surface: {
+                            DEFAULT: '#ffffff',
+                            alt: '#f8fafc',
+                            well: '#f1f5f9',
+                        },
+                        background: {
+                            DEFAULT: '#f4f7fb',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Support Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="bg-background text-slate-800 font-sans min-h-screen antialiased">
+
+    <!-- Auth Section (Centered) -->
+    <div id="authSection" class="hidden min-h-screen flex items-center justify-center p-6">
+        <div class="surface-card p-8 md:p-12 w-full max-w-xl">
+            <div class="text-center mb-10">
+                <div class="text-5xl mb-4">🩺</div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">CareCompass <span
+                        class="text-medical-600">AI</span></h1>
+                <p class="text-slate-500 mt-2 font-medium">AI-assisted medical triage & patient tracking</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Work Email</label>
+                    <input type="email" id="loginEmail"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all"
+                        placeholder="doctor@hospital.org">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <input type="password" id="loginPassword"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all"
+                        placeholder="••••••••">
+                </div>
+                <button onclick="handleLogin()"
+                    class="w-full bg-medical-600 hover:bg-medical-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-medical-600/20 transition-all active:scale-[0.98]">
+                    Sign In to Dashboard
+                </button>
+                <p class="text-center text-sm text-slate-500 font-medium pt-4">
+                    New clinician? <a href="#" onclick="showRegister()"
+                        class="text-medical-600 hover:underline font-bold">Create an account</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Full Name</label>
+                    <input type="text" id="registerName"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all"
+                        placeholder="Dr. Jane Smith">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Email Address</label>
+                    <input type="email" id="registerEmail"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all"
+                        placeholder="jane.smith@hospital.org">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Password</label>
+                    <input type="password" id="registerPassword"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all"
+                        placeholder="Min. 6 characters">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Admin Key <span
+                            class="text-slate-400 font-normal">(Optional)</span></label>
+                    <input type="text" id="adminCode"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all font-mono text-sm"
+                        placeholder="XXXX-XXXX">
+                </div>
+                <button onclick="handleRegister()"
+                    class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-900/10 transition-all active:scale-[0.98]">
+                    Register Account
+                </button>
+                <p class="text-center text-sm text-slate-500 font-medium pt-4">
+                    Already registered? <a href="#" onclick="showLogin()"
+                        class="text-medical-600 hover:underline font-bold">Login here</a>
+                </p>
+            </div>
+
+            <div id="authError"
+                class="hidden mt-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-sm font-bold rounded-xl text-center">
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Layout Architecture -->
+    <div id="mainSection" class="hidden min-h-screen lg:flex">
+
+        <!-- Sidebar Navigation Panel -->
+        <aside class="w-[280px] bg-slate-50 border-r border-slate-200 fixed inset-y-0 left-0 flex flex-col z-40">
+            <!-- App Branding -->
+            <div class="p-8 pb-10">
+                <h1 class="text-2xl font-black tracking-tight text-slate-900 leading-none">
+                    CareCompass <span class="text-medical-600">AI</span>
+                </h1>
+                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-2 leading-none">Clinical
+                    Intelligence Portal</p>
+
+                <div class="mt-8 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div id="userDisplayName" class="text-sm font-black text-slate-700 truncate">Doctor</div>
+                        <span id="userRoleBadge" class="role-badge doctor">Doctor</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertical Navigation -->
+            <nav class="flex-1 px-4 space-y-1.5 overflow-y-auto">
+                <button onclick="switchTab('newCase')"
+                    class="nav-tab w-full flex items-center gap-3 py-3.5 px-5 rounded-2xl text-sm font-bold transition-all group active">
+                    <span class="text-lg opacity-60 group-[.active]:opacity-100">📋</span>
+                    New Triage Case
+                </button>
+                <button onclick="switchTab('records')"
+                    class="nav-tab w-full flex items-center gap-3 py-3.5 px-5 rounded-2xl text-sm font-bold transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-200 group">
+                    <span class="text-lg opacity-40 group-hover:opacity-60">📂</span>
+                    Patient Registry
+                </button>
+                <button onclick="switchTab('dashboard')"
+                    class="nav-tab w-full flex items-center gap-3 py-3.5 px-5 rounded-2xl text-sm font-bold transition-all text-slate-500 hover:text-slate-700 hover:bg-slate-200 group">
+                    <span class="text-lg opacity-40 group-hover:opacity-60">📊</span>
+                    Health Metrics
+                </button>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="p-6 border-t border-slate-200">
+                <button onclick="handleLogout()"
+                    class="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-black text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all active:scale-95 shadow-sm">
+                    Secure Sign Out ➔
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="flex-1 lg:ml-[280px] bg-background min-h-screen">
+            <div class="max-w-6xl p-8 lg:p-14">
+
+                <!-- Dynamic Header (Contextual Titles) -->
+                <div class="mb-10">
+                    <div id="newCaseHeader" class="tab-header">
+                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">New Assessment</h2>
+                        <p class="text-slate-500 font-medium mt-1 italic">Intake and AI-assisted clinical triage</p>
+                    </div>
+                    <div id="recordsHeader" class="tab-header hidden">
+                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Patient Registry</h2>
+                        <p class="text-slate-500 font-medium mt-1 italic">Longitudinal tracking and clinical history</p>
+                    </div>
+                    <div id="dashboardHeader" class="tab-header hidden">
+                        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Clinical Insights</h2>
+                        <p class="text-slate-500 font-medium mt-1 italic">Institutional health metrics and triage data
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Global Disclaimer -->
+                <div
+                    class="bg-blue-50/70 border border-blue-100 px-6 py-4 rounded-3xl mb-12 flex items-start gap-4 text-xs font-bold text-blue-700 leading-relaxed italic shadow-sm">
+                    <span class="text-xl shrink-0 opacity-80">🛡️</span>
+                    <span>AI triage results are for prioritization support only. These are draft assessments based on
+                        your input and MUST be reviewed by a qualified clinician before any medical decision or
+                        intervention.</span>
+                </div>
+
+                <!-- Tab Content: New Case -->
+                <div id="newCaseTab" class="tab-content slide-up active">
+                    <div id="intakeForm" class="surface-card p-8 relative">
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 class="text-xl font-extrabold text-slate-900">Patient Intake</h2>
+                                <p class="text-sm text-slate-500 font-medium">Start a new clinical assessment</p>
+                            </div>
+                            <div class="bg-slate-100 p-2 rounded-xl text-2xl">📋</div>
+                        </div>
+
+                        <!-- Patient Type Toggle -->
+                        <div
+                            class="flex items-center gap-6 mb-8 p-1.5 bg-slate-50 rounded-2xl border border-slate-100 max-w-fit">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="patientType" value="new" checked
+                                    onchange="handlePatientTypeChange()" class="sr-only peer">
+                                <span
+                                    class="px-5 py-2 rounded-xl text-sm font-bold block peer-checked:bg-white peer-checked:text-medical-600 peer-checked:shadow-sm text-slate-500 transition-all">New
+                                    Patient</span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="patientType" value="existing"
+                                    onchange="handlePatientTypeChange()" class="sr-only peer">
+                                <span
+                                    class="px-5 py-2 rounded-xl text-sm font-bold block peer-checked:bg-white peer-checked:text-medical-600 peer-checked:shadow-sm text-slate-500 transition-all">Registered</span>
+                            </label>
+                        </div>
+
+                        <div class="space-y-6">
+                            <!-- Patient Identification (Dynamic) -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <!-- New Patient Name -->
+                                <div id="newPatientFields" class="md:col-span-3">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Patient Name</label>
+                                    <input type="text" id="patientName"
+                                        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all placeholder:text-slate-300"
+                                        placeholder="e.g. John Doe">
+                                </div>
+
+                                <!-- Existing Patient Dropdown -->
+                                <div id="existingPatientFields" class="hidden md:col-span-3">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Search Patient
+                                        Index</label>
+                                    <select id="existingPatientSelect" onchange="handleExistingPatientSelection()"
+                                        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all appearance-none cursor-pointer">
+                                        <option value="">-- Start typing to find patient --</option>
+                                    </select>
+                                </div>
+
+                                <!-- Persistent Age Field -->
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Age</label>
+                                    <input type="number" id="patientAge"
+                                        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all placeholder:text-slate-300"
+                                        placeholder="Years">
+                                </div>
+                            </div>
+
+                            <!-- Clinical Details -->
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Presenting Symptoms &
+                                    Clinical
+                                    History</label>
+                                <textarea id="symptoms"
+                                    class="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all h-32 resize-none placeholder:text-slate-300"
+                                    placeholder="Detail the symptoms, duration, and patient history..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Physical Vitals <span
+                                        class="text-xs font-normal text-slate-400 ml-1">(Optional)</span></label>
+                                <input type="text" id="vitals"
+                                    class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 focus:ring-4 focus:ring-medical-600/10 outline-none transition-all placeholder:text-slate-300"
+                                    placeholder="BP, HR, SpO2, Temp...">
+                            </div>
+
+                            <div id="caseError"
+                                class="hidden p-4 bg-rose-50 border border-rose-100 text-rose-600 text-sm font-bold rounded-2xl">
+                            </div>
+
+                            <button id="analyzeBtn" onclick="submitCase()"
+                                class="w-full bg-slate-900 hover:bg-black text-white font-extrabold py-5 rounded-2xl shadow-xl shadow-slate-900/10 transition-all active:scale-[0.98]">
+                                🚀 Perform AI Clinical Triage
+                            </button>
+
+                            <div id="analyzingSpinner" class="hidden">
+                                <div
+                                    class="flex items-center justify-center p-8 bg-medical-50 border border-medical-100 rounded-3xl animate-pulse">
+                                    <div class="flex flex-col items-center">
+                                        <div
+                                            class="w-12 h-12 border-4 border-medical-600 border-t-transparent rounded-full animate-spin mb-4">
+                                        </div>
+                                        <span
+                                            class="text-medical-700 font-extrabold text-sm uppercase tracking-widest">Generating
+                                            Assessment...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Triage Results -->
+                    <div id="triageResults" class="hidden slide-up mt-8 space-y-8 pb-12">
+                        <!-- Result Summary Card -->
+                        <div class="surface-card p-10 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -z-0 opacity-50">
+                            </div>
+
+                            <div class="relative z-10">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                                    <div>
+                                        <div
+                                            class="text-[10px] font-extrabold text-medical-600 uppercase tracking-widest mb-2 bg-medical-50 px-3 py-1 rounded inline-block">
+                                            Draft Assessment</div>
+                                        <h2 class="text-3xl font-extrabold text-slate-900">AI Triage Summary</h2>
+                                    </div>
+                                    <div id="riskBadge"
+                                        class="text-xl font-black px-8 py-3 rounded-2xl uppercase tracking-tighter">--
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                                    <div class="p-8 section-well flex flex-col items-center text-center">
+                                        <div class="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">
+                                            Triage
+                                            Risk Score</div>
+                                        <div id="riskScore" class="text-7xl font-black text-slate-900 leading-none">0
+                                        </div>
+                                        <div class="flex items-center gap-1.5 mt-4 text-slate-500 font-bold text-sm">
+                                            Clinical Priority Index
+                                            <div class="group relative">
+                                                <span class="cursor-help text-lg">ⓘ</span>
+                                                <div
+                                                    class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-4 bg-slate-900 text-white text-[10px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl leading-relaxed">
+                                                    <b>Clinical Priority Index:</b><br>
+                                                    0-25: Standard<br>
+                                                    26-50: Urgent<br>
+                                                    51-75: Emergent<br>
+                                                    76-100: Immediate
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-6">
+                                        <div class="flex gap-4">
+                                            <div
+                                                class="w-12 h-12 shrink-0 bg-medical-100 text-medical-600 flex items-center justify-center rounded-2xl text-2xl shadow-sm">
+                                                🎯</div>
+                                            <div>
+                                                <h4 class="font-extrabold text-slate-900 mb-1.5">Triage Recommendation
+                                                </h4>
+                                                <p id="triageRecommendation"
+                                                    class="text-slate-600 text-sm font-medium leading-relaxed"></p>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-4">
+                                            <div
+                                                class="w-12 h-12 shrink-0 bg-medical-50 text-medical-600 flex items-center justify-center rounded-2xl text-2xl shadow-sm">
+                                                📋</div>
+                                            <div>
+                                                <h4 class="font-bold text-slate-700 mb-1 text-sm">Initial Summary</h4>
+                                                <p id="clinicalSummary"
+                                                    class="text-slate-500 text-xs font-medium leading-relaxed"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Triage Matrix -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-rose-50/30 border border-rose-100/50 rounded-3xl p-8 shadow-sm">
+                                <h4
+                                    class="flex items-center gap-3 text-rose-700 font-extrabold text-sm uppercase tracking-widest mb-6 border-b border-rose-100 pb-4">
+                                    <span class="text-2xl">⚠️</span> Clinical Concerns
+                                </h4>
+                                <ul id="keyConcerns" class="space-y-4"></ul>
+                            </div>
+                            <div class="section-well p-8 shadow-sm border-indigo-100">
+                                <h4
+                                    class="flex items-center gap-3 text-indigo-700 font-extrabold text-sm uppercase tracking-widest mb-6 border-b border-indigo-100/50 pb-4">
+                                    <span class="text-2xl">🔬</span> Diagnostic Pointers
+                                </h4>
+                                <div id="testsAdvised" class="text-indigo-800 text-sm font-medium leading-relaxed">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="section-well p-8 shadow-sm border-teal-100">
+                                <h4
+                                    class="flex items-center gap-3 text-teal-700 font-extrabold text-sm uppercase tracking-widest mb-6 border-b border-teal-100/50 pb-4">
+                                    <span class="text-2xl">🩹</span> Stabilization
+                                </h4>
+                                <div id="firstAid" class="text-teal-800 text-sm font-medium leading-relaxed"></div>
+                            </div>
+                            <div class="section-well p-8 shadow-sm border-slate-200">
+                                <h4
+                                    class="flex items-center gap-3 text-slate-700 font-extrabold text-sm uppercase tracking-widest mb-6 border-b border-slate-200/50 pb-4">
+                                    <span class="text-2xl">🏥</span> Referral Pathway
+                                </h4>
+                                <div id="referralTo" class="text-slate-600 text-sm font-medium leading-relaxed italic">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row gap-4 pt-6">
+                            <button onclick="saveCase()" id="saveCaseBtn"
+                                class="flex-1 bg-medical-600 hover:bg-medical-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-medical-600/20 transition-all">
+                                💾 Commit to Patient History
+                            </button>
+                            <button onclick="resetCaseForm()"
+                                class="bg-white hover:bg-slate-50 text-slate-500 font-bold py-5 px-10 rounded-2xl border border-slate-200 transition-all">
+                                🗑️ Discard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Patient Records -->
+                <div id="recordsTab" class="tab-content slide-up hidden">
+                    <div class="surface-card p-8 min-h-[500px]">
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 class="text-xl font-extrabold text-slate-900">Clinical Directory</h2>
+                                <p class="text-sm text-slate-500 font-medium italic">Patient history grouped by recorded
+                                    visit</p>
+                            </div>
+                            <div class="bg-slate-100 p-2 rounded-xl text-2xl">📂</div>
+                        </div>
+
+                        <div id="patientRecordsList" class="space-y-4 custom-scrollbar">
+                            <!-- Dynamic Content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Dashboard -->
+                <div id="dashboardTab" class="tab-content slide-up hidden">
+                    <div class="space-y-6">
+                        <div class="surface-card p-8 relative overflow-hidden">
+                            <h2 class="text-xl font-extrabold text-slate-900 mb-2">Population Triage Snapshot</h2>
+                            <p class="text-sm text-slate-500 font-medium mb-10 italic">Distribution of clinical
+                                priorities
+                            </p>
+
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+                                <div onclick="filterDashboardList('all')"
+                                    class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md border-b-4 border-b-medical-600 cursor-pointer active:scale-95 group">
+                                    <div id="totalCases" class="text-3xl font-black text-slate-800 mb-1">0</div>
+                                    <div
+                                        class="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-medical-600 transition-colors">
+                                        Total Load
+                                    </div>
+                                </div>
+                                <div onclick="filterDashboardList('Critical')"
+                                    class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md border-b-4 border-b-rose-500 cursor-pointer active:scale-95 group">
+                                    <div id="criticalCases" class="text-3xl font-black text-rose-600 mb-1">0</div>
+                                    <div
+                                        class="text-[9px] font-black text-rose-400 uppercase tracking-widest group-hover:text-rose-600 transition-colors">
+                                        Critical
+                                    </div>
+                                </div>
+                                <div onclick="filterDashboardList('High')"
+                                    class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md border-b-4 border-b-orange-500 cursor-pointer active:scale-95 group">
+                                    <div id="highCases" class="text-3xl font-black text-orange-600 mb-1">0</div>
+                                    <div
+                                        class="text-[9px] font-black text-orange-400 uppercase tracking-widest group-hover:text-orange-600 transition-colors">
+                                        High
+                                    </div>
+                                </div>
+                                <div onclick="filterDashboardList('Moderate')"
+                                    class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md border-b-4 border-b-amber-500 cursor-pointer active:scale-95 group">
+                                    <div id="moderateCases" class="text-3xl font-black text-amber-600 mb-1">0</div>
+                                    <div
+                                        class="text-[9px] font-black text-amber-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">
+                                        Moderate
+                                    </div>
+                                </div>
+                                <div onclick="filterDashboardList('Low')"
+                                    class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:shadow-md border-b-4 border-b-emerald-500 cursor-pointer active:scale-95 group">
+                                    <div id="lowCases" class="text-3xl font-black text-emerald-600 mb-1">0</div>
+                                    <div
+                                        class="text-[9px] font-black text-emerald-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">
+                                        Low
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filter Results Section -->
+                            <div id="dashboardFilterSection" class="hidden mt-12 slide-up">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h3 id="filterResultsTitle"
+                                        class="font-extrabold text-slate-800 flex items-center gap-2">
+                                        <span class="w-2 h-6 bg-medical-600 rounded-full"></span>
+                                        Filtered Results
+                                    </h3>
+                                    <button onclick="hideDashboardFilter()"
+                                        class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">Close
+                                        View ×</button>
+                                </div>
+                                <div id="dashboardFilteredList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Dynamic content will be injected here -->
+                                </div>
+                            </div>
+
+                            <!-- Admin Upgrade Card -->
+                            <div id="adminUpgradeSection"
+                                class="hidden mt-12 p-8 bg-medical-50/50 rounded-3xl border border-dashed border-medical-300 flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div class="text-center md:text-left">
+                                    <h3 class="font-extrabold text-medical-900 flex items-center gap-2">🔑 Institutional
+                                        Admin Privileges</h3>
+                                    <p class="text-xs text-medical-700/70 font-medium mt-1">Upgrade account to access
+                                        institution-wide health metrics and audit records.</p>
+                                </div>
+                                <button onclick="showAdminUpgradeModal()"
+                                    class="bg-medical-600 text-white font-black text-xs px-8 py-3.5 rounded-xl shadow-lg ring-4 ring-medical-600/10 active:scale-95 transition-all">
+                                    Perform Key Upgrade
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL FOR CASE DETAILS -->
+    <!-- ============================================ -->
+    <div id="caseModal" class="modal bg-slate-900/60 transition-all duration-300">
+        <div
+            class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl slide-up">
+            <div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h2 id="modalTitle" class="text-xl font-extrabold text-slate-800">Case Analysis</h2>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Clinical Record
+                        Viewer</p>
+                </div>
+                <button onclick="closeModal()"
+                    class="p-2 hover:bg-slate-200 rounded-xl transition-colors text-slate-400">✕</button>
+            </div>
+            <div id="modalContent" class="p-8 overflow-y-auto custom-scrollbar flex-1 prose prose-slate max-w-none">
+                <!-- Content injected by app.js -->
+            </div>
+            <div class="px-8 py-6 border-t border-slate-100 bg-slate-50/80 flex flex-col md:flex-row gap-3">
+                <button onclick="exportCasePDF()"
+                    class="flex-1 bg-slate-900 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition-all">
+                    <span>📄</span> Export Medical Dossier (PDF)
+                </button>
+                <button onclick="closeModal()"
+                    class="md:w-32 bg-white text-slate-500 font-bold py-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL FOR ADMIN UPGRADE -->
+    <!-- ============================================ -->
+    <div id="adminUpgradeModal" class="modal bg-slate-900/60 transition-all">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-10 shadow-2xl text-center slide-up">
+            <div class="text-4xl mb-6">🎟️</div>
+            <h2 class="text-2xl font-black text-slate-900 mb-2">Admin Activation</h2>
+            <p class="text-sm text-slate-500 font-medium mb-8">Enter your secure one-time code</p>
+
+            <input type="text" id="adminUpgradeCode"
+                class="w-full px-6 py-4 mb-3 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:bg-white focus:border-medical-600 outline-none text-center font-mono text-xl tracking-widest"
+                placeholder="---- ----">
+            <div id="adminUpgradeError" class="hidden mb-6 text-xs text-rose-500 font-black"></div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="submitAdminUpgrade()"
+                    class="bg-medical-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-medical-600/20 active:scale-95 transition-all">
+                    Unlock Admin Tools
+                </button>
+                <button onclick="closeAdminUpgradeModal()"
+                    class="text-slate-400 text-sm font-bold py-2 hover:text-slate-600 transition-colors">
+                    Return to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+
+</body>
+
+</html>

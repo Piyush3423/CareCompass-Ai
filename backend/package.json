@@ -1,0 +1,18 @@
+{
+  "name": "carecompass-ai-backend",
+  "version": "1.0.0",
+  "description": "Backend server for CareCompass AI - Healthcare triage system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["healthcare", "triage", "ai", "gemini"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@google/generative-ai": "^0.1.3",
+    "cors": "^2.8.5"
+  }
+}

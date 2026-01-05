@@ -1,0 +1,151 @@
+/* 
+  CareCompass AI - Tailwind Support Styles
+  Custom behaviors not easily handled by Tailwind CDN
+*/
+
+.active {
+  display: block !important;
+}
+
+/* Modal Behavior */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal.active {
+  display: flex !important;
+}
+
+/* Transitions */
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar for Records */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+/* Surface elevations for depth */
+.surface-card {
+  background: white;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease-in-out;
+}
+
+.surface-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.section-well {
+  background: #f8fafc;
+  border-radius: 1.25rem;
+  border: 1px solid #eef2f6;
+}
+
+/* Navigation Tab Active state helper */
+.nav-tab.active {
+  background-color: #2563eb;
+  color: white;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.25);
+}
+
+/* Tab Header visibility */
+.tab-header {
+  display: block;
+}
+
+.tab-header.hidden {
+  display: none !important;
+}
+
+/* Section transitions */
+.tab-content {
+  display: none !important;
+}
+
+.tab-content.active {
+  display: block !important;
+}
+
+/* Sidebar behavior */
+.nav-tab {
+  text-align: left;
+  display: flex !important;
+  align-items: center;
+}
+
+/* Fixed Sidebar support for mobile (Simple hide) */
+@media (max-width: 1023px) {
+  aside {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+  }
+
+  #mainSection {
+    display: block !important;
+  }
+}
+
+/* User Role Badges */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  border-width: 1px;
+}
+
+.role-badge.admin {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fee2e2;
+}
+
+.role-badge.doctor {
+  background-color: #f0f9ff;
+  color: #075985;
+  border-color: #e0f2fe;
+}
