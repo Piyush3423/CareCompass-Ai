@@ -499,7 +499,7 @@ async function submitCase() {
 
     try {
         // Call backend AI analysis
-        const response = await fetch('http://localhost:3000/analyze', {
+        const response = await fetch('https://carecompass-backend-jhll.onrender.com/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

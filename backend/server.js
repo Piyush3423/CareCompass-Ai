@@ -22,7 +22,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // TODO: Replace this with your actual Google Gemini API key
 const GEMINI_API_KEY = 'AIzaSyA1tbLcNLhB8rrhBqQBs8KH49_o9fOXQF0';
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ============================================
 // INITIALIZE EXPRESS APP
@@ -207,9 +207,9 @@ app.listen(PORT, () => {
     console.log('===========================================');
     console.log('CareCompass AI Backend Server');
     console.log('===========================================');
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`Triage endpoint: POST http://localhost:${PORT}/analyze`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: /health`);
+    console.log(`Triage endpoint: POST /analyze`);
     console.log('===========================================');
 
     // Warn if API key is not set
