@@ -54,8 +54,8 @@ const ADMIN_CODE = 'ADMIN2024'; // Secret code for admin registration
  * Show the login form
  */
 function showLogin() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
     clearAuthError();
 }
 
@@ -63,8 +63,8 @@ function showLogin() {
  * Show the register form
  */
 function showRegister() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
     clearAuthError();
 }
 
