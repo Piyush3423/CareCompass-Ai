@@ -1312,8 +1312,11 @@ auth.onAuthStateChanged(user => {
     } else {
         // User is signed out
         currentUser = null;
-        document.getElementById('authSection').classList.add('active');
+        const authSec = document.getElementById('authSection');
+        authSec.classList.add('active');
+        authSec.style.display = 'flex'; // Force centering flex
         document.getElementById('mainSection').classList.remove('active');
+        document.getElementById('mainSection').style.display = 'none';
     }
 });
 

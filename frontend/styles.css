@@ -3,8 +3,27 @@
   Custom behaviors not easily handled by Tailwind CDN
 */
 
-.active {
+/* Global visibility helpers */
+.hidden {
+  display: none !important;
+}
+
+#authSection.active {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background-color: #f4f7fb;
+  /* Matches bg-background */
+}
+
+#mainSection.active {
   display: block !important;
+}
+
+@media (min-width: 1024px) {
+  #mainSection.active {
+    display: flex !important;
+  }
 }
 
 /* Modal Behavior */
