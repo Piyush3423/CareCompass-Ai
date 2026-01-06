@@ -11,6 +11,9 @@
 // 4. Run the server: node server.js
 // 5. Server will run on http://localhost:3000
 
+// Load environment variables for security
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -20,7 +23,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // ============================================
 
 // TODO: Replace this with your actual Google Gemini API key
-const GEMINI_API_KEY = 'AIzaSyA1tbLcNLhB8rrhBqQBs8KH49_o9fOXQF0';
+// API Key loaded from environment variable (.env file locally, or hosting settings in production)
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDehL83iwvOe_PsYbuL4hs63XaXYU16Kas';
 
 const PORT = process.env.PORT || 3000;
 
@@ -67,21 +71,27 @@ function createFallbackResponse() {
  */
 function parseAIResponse(text) {
     try {
-        // Remove markdown code blocks if present
-        let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        // More robust parsing: find content between first { and last }
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
 
-        // Parse the JSON
-        const parsed = JSON.parse(cleaned);
+        if (start === -1 || end === -1) {
+            console.error('No JSON object found in Gemini output. Raw text:', text);
+            return createFallbackResponse();
+        }
 
-        // Validate required fields
-        if (!parsed.risk_level || !parsed.risk_score) {
-            console.warn('AI response missing required fields, using fallback');
+        const jsonContent = text.substring(start, end + 1);
+        const parsed = JSON.parse(jsonContent);
+
+        if (!parsed.risk_level) {
+            console.warn('AI response missing risk_level. Body:', jsonContent);
             return createFallbackResponse();
         }
 
         return parsed;
     } catch (error) {
         console.error('Failed to parse AI response:', error);
+        console.error('Original Gemini Text:', text);
         return createFallbackResponse();
     }
 }
@@ -179,11 +189,13 @@ Respond ONLY with the JSON object, no additional text.`;
         res.json(triageData);
 
     } catch (error) {
-        console.error('Error in /analyze endpoint:', error);
+        console.error('!!! Gemini API Failure !!!');
+        console.error(error.stack || error);
 
-        // Even on error, return 200 OK with fallback data
-        // This is safer for a demo/hackathon environment
-        res.json(createFallbackResponse());
+        const fallback = createFallbackResponse();
+        // Pass error message to frontend for easier debugging
+        fallback.clinical_summary = `AI Error: ${error.message}. Please check your model name and API key.`;
+        res.json(fallback);
     }
 });
 

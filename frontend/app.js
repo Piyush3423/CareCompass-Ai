@@ -367,67 +367,139 @@ function switchTab(tabName) {
  */
 function handlePatientTypeChange() {
     const patientType = document.querySelector('input[name="patientType"]:checked').value;
+    const newFields = document.getElementById('newPatientFields');
+    const existingFields = document.getElementById('existingPatientFields');
 
     if (patientType === 'new') {
-        document.getElementById('newPatientFields').style.display = 'block';
-        document.getElementById('existingPatientFields').style.display = 'none';
-        document.getElementById('patientAge').value = ''; // Reset age for new patient
+        newFields.classList.remove('hidden');
+        existingFields.classList.add('hidden');
+        document.getElementById('patientAge').value = '';
+        document.getElementById('patientName').value = '';
     } else {
-        document.getElementById('newPatientFields').style.display = 'none';
-        document.getElementById('existingPatientFields').style.display = 'block';
-        loadExistingPatients();
+        newFields.classList.add('hidden');
+        existingFields.classList.remove('hidden');
+        loadExistingPatients(); // Prefetch patients for search
     }
 }
 
-/**
- * Load existing patients for selection
- */
+let allPatientsList = []; // Memory cache for fast searching
+
 async function loadExistingPatients() {
     if (isLoadingPatients) return;
     isLoadingPatients = true;
 
     try {
-        const select = document.getElementById('existingPatientSelect');
-        const currentValue = select.value; // Store current selection if any
-
-        select.innerHTML = '<option value="">-- Select a patient --</option>';
-
-        // Query patients created by this doctor (or all if admin)
         let query = db.collection('patients');
         if (currentUserRole !== 'admin') {
             query = query.where('doctorId', '==', currentUser.uid);
         }
 
         const snapshot = await query.orderBy('createdAt', 'desc').get();
-        console.log(`Loaded ${snapshot.size} patients from Firestore`);
-
-        const seenPatients = new Set();
+        allPatientsList = [];
 
         snapshot.forEach(doc => {
-            const patient = doc.data();
-            const patientKey = `${patient.name.toLowerCase().trim()}_${patient.age}`;
-
-            // Only add to select if we haven't seen this name/age combo for this doctor
-            if (!seenPatients.has(patientKey)) {
-                console.log(`- Adding Patient: ${patient.name} [ID: ${doc.id}]`);
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = `${patient.name} (Age: ${patient.age || 'N/A'})`;
-                select.appendChild(option);
-                seenPatients.add(patientKey);
-            } else {
-                console.log(`- Skipping Duplicate: ${patient.name} [ID: ${doc.id}]`);
-            }
+            allPatientsList.push({
+                id: doc.id,
+                ...doc.data()
+            });
         });
 
-        // Restore selection if it still exists
-        if (currentValue) select.value = currentValue;
-
+        console.log(`Cached ${allPatientsList.length} patients for search`);
     } catch (error) {
         console.error('Error loading patients:', error);
     } finally {
         isLoadingPatients = false;
     }
+}
+
+/**
+ * Handle live search in the patient registry
+ */
+function handlePatientSearch() {
+    const input = document.getElementById('patientSearchInput');
+    const resultsContainer = document.getElementById('patientSearchResults');
+    const clearBtn = document.getElementById('clearSearchBtn');
+    const query = input.value.toLowerCase().trim();
+
+    if (!query) {
+        resultsContainer.classList.remove('active');
+        clearBtn?.classList.remove('active');
+        return;
+    }
+
+    clearBtn?.classList.add('active');
+
+    // Filter local cache
+    const matches = allPatientsList.filter(p =>
+        p.name.toLowerCase().includes(query)
+    ).slice(0, 10); // Show top 10 matches
+
+    if (matches.length > 0) {
+        resultsContainer.innerHTML = matches.map(p => {
+            // Highlight matching text
+            const name = p.name;
+            const index = name.toLowerCase().indexOf(query);
+            let displayName = name;
+
+            if (index >= 0) {
+                const before = name.substring(0, index);
+                const match = name.substring(index, index + query.length);
+                const after = name.substring(index + query.length);
+                displayName = `${before}<span class="search-result-highlight">${match}</span>${after}`;
+            }
+
+            return `
+                <div class="search-result-item" onclick="selectPatientFromSearch('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.age || ''}')">
+                    <div class="search-icon-circle">👤</div>
+                    <div class="search-result-content">
+                        <span class="search-result-name">${displayName}</span>
+                        <span class="search-result-meta">Age: ${p.age || 'N/A'} • ID: ...${p.id.slice(-5)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        resultsContainer.classList.add('active');
+    } else {
+        resultsContainer.innerHTML = `
+            <div class="p-6 text-center">
+                <div class="text-3xl mb-2">🔍</div>
+                <div class="text-sm text-slate-500 font-bold">No patients found</div>
+                <div class="text-xs text-slate-400">Try a different name or create a new patient</div>
+            </div>
+        `;
+        resultsContainer.classList.add('active');
+    }
+}
+
+/**
+ * Clear the current search
+ */
+function clearPatientSearch() {
+    const input = document.getElementById('patientSearchInput');
+    const resultsContainer = document.getElementById('patientSearchResults');
+    const clearBtn = document.getElementById('clearSearchBtn');
+
+    input.value = '';
+    input.focus();
+    resultsContainer.classList.remove('active');
+    clearBtn?.classList.remove('active');
+
+    // Reset selection hidden fields
+    document.getElementById('existingPatientId').value = '';
+    document.getElementById('patientAge').value = '';
+}
+
+/**
+ * Select a patient from search results
+ */
+function selectPatientFromSearch(id, name, age) {
+    document.getElementById('existingPatientId').value = id;
+    document.getElementById('patientSearchInput').value = name;
+    document.getElementById('patientAge').value = age;
+
+    // Hide results
+    document.getElementById('patientSearchResults').classList.remove('active');
+    console.log(`Selected patient: ${name} [${id}]`);
 }
 
 /**
@@ -473,17 +545,13 @@ async function submitCase() {
             return;
         }
     } else {
-        patientId = document.getElementById('existingPatientSelect').value;
+        // For existing patients, name comes from the search input
+        patientName = document.getElementById('patientSearchInput').value.trim();
+        patientId = document.getElementById('existingPatientId').value;
 
-        if (!patientId) {
-            showCaseError('Please select a patient');
+        if (!patientName) {
+            showCaseError('Please search and select a patient');
             return;
-        }
-
-        // Get patient name from the selected identifier
-        const patientDoc = await db.collection('patients').doc(patientId).get();
-        if (patientDoc.exists) {
-            patientName = patientDoc.data().name;
         }
     }
 
@@ -493,13 +561,13 @@ async function submitCase() {
     }
 
     // Show loading
-    document.getElementById('analyzingSpinner').style.display = 'block';
-    document.getElementById('analyzeBtn').style.display = 'none';
+    document.getElementById('analyzingSpinner').classList.remove('hidden');
+    document.getElementById('analyzeBtn').classList.add('hidden');
     clearCaseError();
 
     try {
         // Call backend AI analysis
-        const response = await fetch('https://carecompass-backend-jhll.onrender.com/analyze', {
+        const response = await fetch('http://localhost:3000/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -529,12 +597,12 @@ async function submitCase() {
         displayTriageResults(triageData);
 
         // Hide loading
-        document.getElementById('analyzingSpinner').style.display = 'none';
-        document.getElementById('analyzeBtn').style.display = 'block';
-
+        document.getElementById('analyzingSpinner').classList.add('hidden');
+        document.getElementById('analyzeBtn').classList.remove('hidden');
     } catch (error) {
         console.error('Error submitting case:', error);
-        document.getElementById('caseLoading').style.display = 'none';
+        document.getElementById('analyzingSpinner').classList.add('hidden');
+        document.getElementById('analyzeBtn').classList.remove('hidden');
         showCaseError('Failed to analyze case. Please check if the backend server is running.');
     }
 }
@@ -638,8 +706,8 @@ async function saveCase() {
  */
 function displayTriageResults(triageData) {
     // Hide form, show results
-    document.getElementById('intakeForm').style.display = 'none';
-    document.getElementById('triageResults').style.display = 'block';
+    document.getElementById('intakeForm').classList.add('hidden');
+    document.getElementById('triageResults').classList.remove('hidden');
 
     // Risk badge
     const riskBadge = document.getElementById('riskBadge');
@@ -694,15 +762,19 @@ function displayTriageResults(triageData) {
  */
 function resetCaseForm() {
     // Show form, hide results
-    document.getElementById('intakeForm').style.display = 'block';
-    document.getElementById('triageResults').style.display = 'none';
+    document.getElementById('intakeForm').classList.remove('hidden');
+    document.getElementById('triageResults').classList.add('hidden');
 
     // Clear form fields
     document.getElementById('patientName').value = '';
     document.getElementById('patientAge').value = '';
     document.getElementById('symptoms').value = '';
     document.getElementById('vitals').value = '';
-    document.getElementById('existingPatientSelect').value = '';
+    // Clear search and selection fields (dropdown was removed in refactor)
+    const searchInput = document.getElementById('patientSearchInput');
+    const existingId = document.getElementById('existingPatientId');
+    if (searchInput) searchInput.value = '';
+    if (existingId) existingId.value = '';
 
     // Reset to new patient
     document.querySelector('input[name="patientType"][value="new"]').checked = true;
